@@ -1,0 +1,46 @@
+[tool.poetry]
+name = "terminal-mapping"
+version = "0.1.0"
+description = "Scripts to analyze Terminal Mapping data"
+authors = ["Guillaume Filion <guillaume.filion@gmail.com>"]
+readme = "README.md"
+packages = []
+
+[tool.poetry.dependencies]
+python = ">=3.9,<4.0"
+# Pull and build the native seeq module directly from GitHub (tagged release)
+seeq = { git = "https://github.com/ezorita/seeq.git", tag = "v1.2" }
+
+[tool.poetry.group.dev.dependencies]
+pre-commit = "^3.7.1"
+ruff = "^0.4.9"
+pytest = "^8.3.2"
+
+[tool.ruff]
+line-length = 100
+target-version = "py38"
+exclude = [
+  ".venv",
+  "build",
+  "dist",
+]
+
+[tool.ruff.lint]
+select = [
+  "E",  # pycodestyle errors
+  "F",  # pyflakes
+  "I",  # isort
+  "UP", # pyupgrade
+  "B",  # flake8-bugbear
+  "A",  # flake8-builtins
+  "RUF" # ruff-specific rules
+]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+
+[build-system]
+requires = ["poetry-core>=1.9.0"]
+build-backend = "poetry.core.masonry.api"
