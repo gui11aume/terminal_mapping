@@ -16,6 +16,7 @@ for the maximum number of allowed mismatches per motif.
 """
 
 import argparse
+import glob
 import gzip
 
 import seeq
@@ -84,8 +85,9 @@ def main():
     """Command-line entry point.
 
     Options:
-    --virus {HIV,SIV}   Select which viral motif to use (default: HIV).
-    input               Path to gzipped FASTQ file.
+    --virus {HIV,SIV}          Select which viral motif to use (default: HIV).
+    inputs                      Path(s) or glob(s) to gzipped FASTQ file(s),
+                                e.g. sample.fastq.gz or '*.fastq.gz'.
     """
     parser = argparse.ArgumentParser(
         description=(
@@ -93,7 +95,11 @@ def main():
             "anchor from gzipped FASTQ."
         ),
     )
-    parser.add_argument("input", help="Path to gzipped FASTQ file")
+    parser.add_argument(
+        "inputs",
+        nargs="+",
+        help=("Path(s) or glob pattern(s) to gzipped FASTQ file(s) (e.g. '*.fastq.gz')."),
+    )
     parser.add_argument(
         "--virus",
         choices=["HIV", "SIV"],
@@ -104,14 +110,28 @@ def main():
 
     viral_matcher = HIV_matcher if args.virus == "HIV" else SIV_matcher
 
-    with gzip.open(args.input) as f:
-        # FASTQ format: for each 4-line record, line 1 (0-based index 1) is the sequence.
-        # Process both the sequence and its reverse complement to capture motif orientation.
-        for lineno, line in enumerate(f):
-            if lineno % 4 == 1:
-                seq = line.decode("ascii").rstrip()
-                process(seq, viral_matcher)
-                process(reverse_complement(seq), viral_matcher)
+    # Expand inputs as globs and concatenate files in the given order
+    matched_files = []
+    for pattern in args.inputs:
+        expanded = sorted(glob.glob(pattern))
+        if expanded:
+            matched_files.extend(expanded)
+        else:
+            # If the pattern didn't match, treat it as a literal path
+            matched_files.append(pattern)
+
+    if not matched_files:
+        parser.error("No input files matched the provided patterns/paths.")
+
+    for path in matched_files:
+        with gzip.open(path, "rb") as f:
+            # FASTQ format: for each 4-line record, line 1 (0-based index 1) is the sequence.
+            # Process both the sequence and its reverse complement to capture motif orientation.
+            for lineno, line in enumerate(f):
+                if lineno % 4 == 1:
+                    seq = line.decode("ascii").rstrip()
+                    process(seq, viral_matcher)
+                    process(reverse_complement(seq), viral_matcher)
 
 
 if __name__ == "__main__":
